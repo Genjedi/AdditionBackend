@@ -1,0 +1,9 @@
+package com.casaleff.addition.repository;
+
+import com.casaleff.addition.model.Payment;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.UUID;
+
+public interface PaymentRepository extends JpaRepository<Payment, UUID> {
+}
