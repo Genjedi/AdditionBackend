@@ -3,6 +3,8 @@ package com.casaleff.addition.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.Objects;
 
@@ -12,16 +14,23 @@ public class MenuItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    int id;
+    private Integer id;
 
-    String name;
+    private String name;
 
     @Column(length = 1000)
     private String description;
 
-    float price;
+    private float price;
 
-    String path;
+    private String path;
+
+    // Each item belongs to one Menu
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "menu_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE) // DB-level cascade
+    private Menu menu;
 
     @Override
     public boolean equals(Object o) {

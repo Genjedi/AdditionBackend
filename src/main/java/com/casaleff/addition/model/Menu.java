@@ -1,8 +1,12 @@
 package com.casaleff.addition.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -14,9 +18,19 @@ public class Menu {
 
     private String name;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    List<MenuItem> items;
+    // Menu items
+    @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE) // DB-level cascade
+    private List<MenuItem> items = new ArrayList<>();
 
-    @OneToMany(cascade = CascadeType.ALL)
-    List<Menu> subMenus;
+    // Parent menu for hierarchy
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "parent_menu_id")
+    private Menu parentMenu;
+
+    // Submenus
+    @OneToMany(mappedBy = "parentMenu", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE) // DB-level cascade
+    private List<Menu> subMenus = new ArrayList<>();
 }

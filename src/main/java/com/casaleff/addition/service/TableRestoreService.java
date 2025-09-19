@@ -13,7 +13,6 @@ public class TableRestoreService {
     private static final Map<Integer, RestoredData> cache = new HashMap<>();
 
     public static void getCache(MyTable myTable) {
-        log.info("getCache hit");
         RestoredData restoredData = cache.get(myTable.getId());
 
         if (restoredData == null) {

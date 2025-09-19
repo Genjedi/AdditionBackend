@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class MenuService {
 
@@ -22,61 +24,125 @@ public class MenuService {
     @Autowired
     private MenuItemRepository menuItemRepository;
 
-    public Menu addMenu(String name, String parentMenuName){
+    /**
+     * Adds a new menu, optionally as a submenu to an existing menu.
+     */
+    public Menu addMenu(String name, String parentMenuName) {
+        log.info("Adding menu: '{}' with parent: '{}'", name, parentMenuName);
+
         Menu menu = new Menu();
         menu.setName(name);
-        if(parentMenuName != null){
-           Menu parent = findByName(parentMenuName);
-           parent.getSubMenus().add(menu);
+
+        if (parentMenuName != null) {
+            Menu parent = findByName(parentMenuName);
+            parent.getSubMenus().add(menu);
+            log.debug("Added '{}' as a submenu to '{}'", name, parentMenuName);
         }
-        return menuRepository.save(menu);
+
+        Menu saved = menuRepository.save(menu);
+        log.info("Menu '{}' saved with ID: {}", saved.getName(), saved.getId());
+        return saved;
     }
 
-    public Menu findByName(String name){
-        Optional<Menu> menu = menuRepository.findByName(name);
-        return menu.orElseThrow(() -> new BaseException(ErrorType.ENTITY_NOT_FOUND, "No such menu"));
+    /**
+     * Finds a menu by its name.
+     */
+    public Menu findByName(String name) {
+        log.info("Looking for menu with name: '{}'", name);
+
+        return menuRepository.findByName(name)
+                .orElseThrow(() -> {
+                    log.warn("Menu '{}' not found", name);
+                    return new BaseException(ErrorType.ENTITY_NOT_FOUND, "No such menu");
+                });
     }
 
-    public Menu findMainMenu(){
-        Optional<Menu> mainMenu = menuRepository.findByName("MainMenu");
-        return mainMenu.orElseThrow(() -> new BaseException(ErrorType.ENTITY_NOT_FOUND, "No such menu"));
+    /**
+     * Returns the main menu.
+     */
+    public Menu findMainMenu() {
+        log.info("Retrieving main menu");
+
+        return menuRepository.findByName("MainMenu")
+                .orElseThrow(() -> {
+                    log.warn("Main menu not found");
+                    return new BaseException(ErrorType.ENTITY_NOT_FOUND, "No such menu");
+                });
     }
 
-    public List<String> menuList(){
+    /**
+     * Returns a list of menu names including submenus in a flat string.
+     */
+    public List<String> menuList() {
+        log.info("Generating list of all menus with their submenus");
+
         List<Menu> menuList = menuRepository.findAll();
         List<String> menuNameList = new ArrayList<>();
-        for(Menu menu : menuList){
-            StringBuilder menus = new StringBuilder(menu.getName());
+
+        for (Menu menu : menuList) {
+            StringBuilder menuLine = new StringBuilder(menu.getName());
+
             List<Menu> subMenus = menu.getSubMenus();
-           if(!subMenus.isEmpty()){
-              for(Menu subMenu : menu.getSubMenus()){
-                  menus.append(", ").append(subMenu.getName());
-              }
-           }
-           menuNameList.add(menus.toString());
+            if (!subMenus.isEmpty()) {
+                for (Menu subMenu : subMenus) {
+                    menuLine.append(", ").append(subMenu.getName());
+                }
+            }
+
+            menuNameList.add(menuLine.toString());
+            log.debug("Menu entry: {}", menuLine);
         }
+
+        log.info("Total menus processed: {}", menuNameList.size());
         return menuNameList;
     }
 
-    public Menu addItems(List<MenuItem> items, String menuName){
+    /**
+     * Adds a list of items to a menu.
+     */
+    public Menu addItems(List<MenuItem> items, String menuName) {
+        log.info("Adding {} items to menu '{}'", items.size(), menuName);
+
         Menu menu = findByName(menuName);
 
         for (MenuItem item : items) {
+            item.setMenu(menu);
             menuItemRepository.save(item);
             menu.getItems().add(item);
+            log.debug("Added item '{}' to menu '{}'", item.getName(), menu.getName());
         }
-        return menuRepository.save(menu);
+
+        Menu updated = menuRepository.save(menu);
+        log.info("Menu '{}' updated with new items", updated.getName());
+        return updated;
     }
 
-    public void removeItem(Integer itemID){
-        MenuItem item = menuItemRepository.findById(itemID).orElseThrow(() -> new BaseException(ErrorType.ENTITY_NOT_FOUND, "No such item"));
+    /**
+     * Removes a menu item by its ID.
+     */
+    public void removeItem(Integer itemID) {
+        log.info("Attempting to remove item with ID: {}", itemID);
+
+        MenuItem item = menuItemRepository.findById(itemID)
+                .orElseThrow(() -> {
+                    log.warn("Item with ID {} not found", itemID);
+                    return new BaseException(ErrorType.ENTITY_NOT_FOUND, "No such item");
+                });
 
         menuItemRepository.delete(item);
+        log.info("Item with ID {} removed", itemID);
     }
 
-    public Menu removeMenu(String name){
-        var menu = findByName(name);
+    /**
+     * Deletes a menu by name.
+     */
+    public Menu removeMenu(String name) {
+        log.info("Removing menu with name: '{}'", name);
+
+        Menu menu = findByName(name);
         menuRepository.delete(menu);
+
+        log.info("Menu '{}' deleted", name);
         return menu;
     }
 }
